@@ -43,12 +43,20 @@ def map_mpi(
     """.format(
         num_processes=num_processes, num_experiments=num_experiments)
   termcolor.cprint(message, color='blue', attrs=['bold'])
+  
+  if num_processes > 1: # on cpu
+    # Create a pool of processes, dispatch the experiments to them, show progress.
+    pool = futures.ProcessPoolExecutor(num_processes)
+    progress_bar = tqdm.tqdm(total=num_experiments)
 
-  # Create a pool of processes, dispatch the experiments to them, show progress.
-  pool = futures.ProcessPoolExecutor(num_processes)
-  progress_bar = tqdm.tqdm(total=num_experiments)
-
-  for bsuite_id in pool.map(run_fn, bsuite_ids):
-    description = '[Last finished: {}]'.format(bsuite_id)
-    progress_bar.set_description(termcolor.colored(description, color='green'))
-    progress_bar.update()
+    for bsuite_id in pool.map(run_fn, bsuite_ids):
+      description = '[Last finished: {}]'.format(bsuite_id)
+      progress_bar.set_description(termcolor.colored(description, color='green'))
+      progress_bar.update()
+  else: # on gpu
+    progress_bar = tqdm.tqdm(total=num_experiments)
+    for bsuite_id in bsuite_ids:
+      description = '[Last finished: {}]'.format(bsuite_id)
+      progress_bar.set_description(termcolor.colored(description, color='green'))
+      progress_bar.update()
+      run_fn(bsuite_id)
